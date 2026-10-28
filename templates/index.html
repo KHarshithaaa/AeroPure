@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroPure - AI Air Quality Prediction Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            width: 400px;
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 12px;
+            background: #e8f8f5;
+            color: #16a085;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>AeroPure AI Platform</h2>
+        <div class="form-group">
+            <label for="pm25">PM2.5 Level:</label>
+            <input type="number" id="pm25" placeholder="e.g., 55.0">
+        </div>
+        <div class="form-group">
+            <label for="pm10">PM10 Level:</label>
+            <input type="number" id="pm10" placeholder="e.g., 80.0">
+        </div>
+        <div class="form-group">
+            <label for="no2">NO2 Level:</label>
+            <input type="number" id="no2" placeholder="e.g., 25.0">
+        </div>
+        <button onclick="predictAQI()">Predict Air Quality</button>
+        <div id="result"></div>
+    </div>
+
+    <script>
+        async function predictAQI() {
+            const pm25 = document.getElementById('pm25').value;
+            const pm10 = document.getElementById('pm10').value;
+            const no2 = document.getElementById('no2').value;
+            const resultDiv = document.getElementById('result');
+
+            if (!pm25 || !pm10 || !no2) {
+                alert("Please fill in all fields!");
+                return;
+            }
+
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pm25: parseFloat(pm25), pm10: parseFloat(pm10), no2: parseFloat(no2) })
+            });
+
+            const data = await response.json();
+            if (data.status === 'success') {
+                resultDiv.style.display = 'block';
+                resultDiv.innerHTML = `Predicted Air Quality Index (AQI): ${data.predicted_aqi}`;
+            } else {
+                alert("Prediction failed: " + data.message);
+            }
+        }
+    </script>
+</body>
+</html>
