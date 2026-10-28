@@ -1,53 +1,131 @@
-# app.py
-from flask import Flask, request, jsonify, render_template
-import joblib
-import numpy as np
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AeroPure - AI Air Quality Prediction Platform</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+            width: 440px;
+        }
+        h2 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #34495e;
+            font-weight: 600;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: left;
+            font-weight: 500;
+            display: none;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>AeroPure AI Platform</h2>
+        <div class="form-group">
+            <label for="pm25">PM2.5 Level:</label>
+            <input type="number" id="pm25" placeholder="e.g., 55.0">
+        </div>
+        <div class="form-group">
+            <label for="pm10">PM10 Level:</label>
+            <input type="number" id="pm10" placeholder="e.g., 80.0">
+        </div>
+        <div class="form-group">
+            <label for="no2">NO2 Level:</label>
+            <input type="number" id="no2" placeholder="e.g., 25.0">
+        </div>
+        <button onclick="predictAQI()">Predict Air Quality</button>
+        <div id="result"></div>
+    </div>
 
-app = Flask(__name__)
+    <script>
+        async function predictAQI() {
+            const pm25 = document.getElementById('pm25').value;
+            const pm10 = document.getElementById('pm10').value;
+            const no2 = document.getElementById('no2').value;
+            const resultDiv = document.getElementById('result');
 
-# Load trained model for production inference
-model = joblib.load('aeropure_model.pkl')
+            if (!pm25 || !pm10 || !no2) {
+                alert("Please fill in all fields!");
+                return;
+            }
 
-def get_aqi_category(aqi):
-    if aqi <= 50:
-        return {"category": "Good", "color": "#2ecc71"}
-    elif aqi <= 100:
-        return {"category": "Moderate", "color": "#f1c40f"}
-    elif aqi <= 200:
-        return {"category": "Poor / Unhealthy", "color": "#e67e22"}
-    else:
-        return {"category": "Severe / Hazardous", "color": "#e74c3c"}
+            const response = await fetch('/predict', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ pm25: parseFloat(pm25), pm10: parseFloat(pm10), no2: parseFloat(no2) })
+            });
 
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/predict', methods=['POST'])
-def predict():
-    data = request.get_json(force=True)
-    try:
-        pm25 = float(data['pm25'])
-        pm10 = float(data['pm10'])
-        no2 = float(data['no2'])
-        
-        features = np.array([[pm25, pm10, no2]])
-        prediction = model.predict(features)[0]
-        aqi_val = round(float(prediction), 2)
-        
-        aqi_info = get_aqi_category(aqi_val)
-        
-        return jsonify({
-            'status': 'success',
-            'predicted_aqi': aqi_val,
-            'category': aqi_info['category'],
-            'color': aqi_info['color'],
-            'model_accuracy': '98.73% (R² Score)'
-        })
-    except Exception as e:
-        return jsonify({
-            'status': 'error',
-            'message': str(e)
-        }), 400
-
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+            const data = await response.json();
+            if (data.status === 'success') {
+                resultDiv.style.display = 'block';
+                resultDiv.style.backgroundColor = data.color + '15'; 
+                resultDiv.style.color = '#2c3e50';
+                resultDiv.style.border = `1px solid ${data.color}`;
+                resultDiv.innerHTML = `
+                    <div style="font-size: 1.1em; font-weight: bold; color: ${data.color}; margin-bottom: 5px;">
+                        Predicted AQI: ${data.predicted_aqi} (${data.category})
+                    </div>
+                    <div style="margin-bottom: 8px;"><strong>AI Recommendation:</strong> ${data.recommendation}</div>
+                    <div style="font-size: 0.85em; color: #7f8c8d; border-top: 1px solid #ddd; padding-top: 5px;">
+                        Model Accuracy: ${data.model_accuracy}
+                    </div>
+                `;
+            } else {
+                alert("Prediction failed: " + data.message);
+            }
+        }
+    </script>
+</body>
+</html>
