@@ -8,6 +8,16 @@ app = Flask(__name__)
 # Load trained model for production inference
 model = joblib.load('aeropure_model.pkl')
 
+def get_aqi_category(aqi):
+    if aqi <= 50:
+        return {"category": "Good", "color": "#2ecc71"}
+    elif aqi <= 100:
+        return {"category": "Moderate", "color": "#f1c40f"}
+    elif aqi <= 200:
+        return {"category": "Poor / Unhealthy", "color": "#e67e22"}
+    else:
+        return {"category": "Severe / Hazardous", "color": "#e74c3c"}
+
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -22,10 +32,16 @@ def predict():
         
         features = np.array([[pm25, pm10, no2]])
         prediction = model.predict(features)[0]
+        aqi_val = round(float(prediction), 2)
+        
+        aqi_info = get_aqi_category(aqi_val)
         
         return jsonify({
             'status': 'success',
-            'predicted_aqi': round(float(prediction), 2)
+            'predicted_aqi': aqi_val,
+            'category': aqi_info['category'],
+            'color': aqi_info['color'],
+            'model_accuracy': '98.73% (R² Score)'
         })
     except Exception as e:
         return jsonify({
